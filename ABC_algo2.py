@@ -39,14 +39,23 @@ def produce_neighbor(population, i_index):
     - phi in [-1, 1]
     """
     # choose k different from i_index
-    indices = list(range(len(population)))
+    indices = list(range(len(population))) ### len(population) is SN (number of bees)
+    #print("indices:", indices)
     indices.remove(i_index)
     k = random.choice(indices)
+
     z_i_val = population[i_index]
     z_k_val = population[k]
-    phi = random.uniform(-1.0, 1.0)  # phi_j in [-1,1]
+    
+    phi = np.random.uniform(-1.0, 1.0, size=len(population[0]) )  # phi_j in [-1,1] (demin, ) for 3D
+    
     v = z_i_val + phi * (z_i_val - z_k_val)
-
+    # print("z_i_val:", z_i_val.shape)
+    # print("z_k_val:", z_k_val.shape)
+    # print("phi:", phi.shape)
+    # print("v:", v.shape)
+    
+    # exit()
     # clamp to continuous bounds then map to discrete search space
     #if v < Z_MIN: v = Z_MIN
     #if v > Z_MAX: v = Z_MAX
@@ -56,9 +65,11 @@ def produce_neighbor(population, i_index):
 
 
 
-def scout_random_solution():
-    # document's scout formula: z = Zmin + rand(0,1)*(Zmax - Zmin)
-    val = Z_MIN + random.random() * (Z_MAX - Z_MIN)
+def scout_random_solution(dimension):
+    # scout formula: z = Zmin + rand(0,1)*(Zmax - Zmin)
+    val = np.array([Z_MIN]*dimension) + np.random.uniform(0, 1, size=dimension) * np.array([Z_MAX - Z_MIN]*dimension)  # for 3D
+    # print("Scout random solution:", val)
+    # exit()
     return val
     #return clamp_to_search_space(val)
 
@@ -69,7 +80,7 @@ def scout_random_solution():
 # -------------------------
 # ABC algorithm (document style)
 # -------------------------
-def abc_document_style(
+def ABC_Optim_Algo(
     SN=None,        # number of food sources = number of employed bees
     population=None,  # initial population of food sources (candidate solutions)
     MCN=None,      # maximum cycle number
@@ -117,13 +128,17 @@ def abc_document_style(
     best_solution = population[best_idx]
     best_cost = costs[best_idx]
 
-    print(f"Initial best solution: {best_solution}, cost: {best_cost}")
+    #print(f"Initial best solution: {best_solution}, cost: {best_cost}")
 
     
 
     cycle = 1
     runcost = [0] * (MCN )  # store best cost at each cycle
     while cycle <= MCN:
+
+
+
+        #---------------------------------------------------------
         # 6. Employed bees phase
         for i in range(SN):
             candidate = produce_neighbor(population, i)
@@ -177,7 +192,13 @@ def abc_document_style(
         # 9. Scout phase: replace abandoned solutions
         for i in range(SN):
             if trial[i] >= limit:
-                population[i] = scout_random_solution()
+
+                #print("population[i] before scout:", population[i])
+                # this generates a new random solution for the abandoned food source
+                #  len(population[i]) is the dimension of the solution
+                population[i] = scout_random_solution(len(population[i])) 
+                #print("population[i] after scout:", population[i])
+                #exit()
                 costs[i] = objective(population[i])
                 fits[i] = fitness_from_cost(costs[i])
                 trial[i] = 0
@@ -211,15 +232,13 @@ def abc_document_style(
 if __name__ == "__main__":
 
     # 1. Setup parameters from the table
-    dimension = 10
-    SN = 5  # number of bees (population size)
-    search_space= [-100, 100]
-
-    # continuous bounds derived from search_space
-    Z_MIN = min(search_space)
+    dimension = 30
+    SN = 100                         # number of bees (population size)
+    search_space= [-100, 100]      # continuous search space bounds
+    Z_MIN = min(search_space)      # continuous bounds derived from search_space
     Z_MAX = max(search_space)
 
-    MCN=190 # maximum cycle number
+    MCN=80                        # maximum cycle number
 
     best_value = float('inf')  # initialize best value to infinity
     best = None                # initialize best solution
@@ -234,16 +253,21 @@ if __name__ == "__main__":
 
     
 
-    result = abc_document_style(SN=SN,population=bees, MCN=MCN, limit=3, seed=123)
+    result = ABC_Optim_Algo(SN=SN,population=bees, MCN=MCN, limit=3, seed=123)
 
     # print("Best solution:", result["best_solution"], "cost:", result["best_cost"])
     # print("Final population:", result["population"])
     # print("Final costs:", result["costs"])
     # print("Final fitnesses:", result["fits"])
-    print("Run costs:", result["runcost"])
+
+    xx=[float(x) for x in result["runcost"]]
+    #print("Run costs:", xx)
 
 figure, ax = plt.subplots()
 ax.plot(range(1, MCN + 1), result["runcost"], marker='o')
 ax.set_xlabel('Cycle')  
 ax.set_ylabel('Best Cost') 
+graph_title = f'ABC Algorithm: Step Test Function. Best Cost over {MCN} Cycles. '
+ax.set_title(graph_title)
+ax.grid(True)
 plt.show()

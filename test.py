@@ -1,6 +1,7 @@
 import math
 
 import random
+import numpy as np
 
 
 points=[(1,2),(3,4),(5,6),(7,8)]
@@ -22,6 +23,18 @@ print(clusters)
 
 #------------------------------
 search_space=[-5, -3, -1, 0, 1, 3, 5]
+
+a= np.array([1,2,3])
+b= np.array([2,2,2])
+
+c=b*(a-b)
+print("Element-wise multiplication:", c)
+print("Randomly selected points:", a.shape, b)
+
+
+exit()
+
+
 def random_solution():
     return random.choice(search_space)
 
