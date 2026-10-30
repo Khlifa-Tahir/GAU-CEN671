@@ -1,6 +1,6 @@
 from pprint import pp
 import random
-import math
+import matplotlib.pyplot as plt
 import numpy as np
 from function_step import step_function
 
@@ -70,10 +70,10 @@ def scout_random_solution():
 # ABC algorithm (document style)
 # -------------------------
 def abc_document_style(
-    SN=4,        # number of food sources = number of employed bees
+    SN=None,        # number of food sources = number of employed bees
     population=None,  # initial population of food sources (candidate solutions)
     MCN=None,      # maximum cycle number
-    limit=5,     # abandonment limit
+    limit=None,     # abandonment limit
     seed=None
 ):
     if seed is not None:
@@ -99,8 +99,14 @@ def abc_document_style(
     
     fits = [fitness_from_cost(c) for c in costs]
 
-    trial = [0] * SN  # abandonment counters [0, 0, 0, 0]
+    
 
+    trial = [0] * SN  # abandonment counters [0, 0, 0, 0]
+    # print("Initial costs:", costs)
+    # print("Initial fitnesses:", fits)
+    # print("Initial trial counters:", trial)
+
+    # exit()
     
 
     
@@ -116,6 +122,7 @@ def abc_document_style(
     
 
     cycle = 1
+    runcost = [0] * (MCN )  # store best cost at each cycle
     while cycle <= MCN:
         # 6. Employed bees phase
         for i in range(SN):
@@ -182,16 +189,20 @@ def abc_document_style(
             best_solution = population[current_best_idx]
 
         # optional: print progress
-        print(f"Cycle {cycle}: best = {best_solution}, cost = {best_cost}, population = {population}")
-
+        #print(f"Cycle {cycle}: best = {best_solution}, cost = {best_cost}, population = {population}")
+        
+        
+        runcost[cycle-1] = best_cost
         cycle += 1
+        
 
     return {
         "best_solution": best_solution,
         "best_cost": best_cost,
         "population": population,
         "costs": costs,
-        "fits": fits
+        "fits": fits,
+        "runcost": runcost
     }
 
 # -------------------------
@@ -200,15 +211,15 @@ def abc_document_style(
 if __name__ == "__main__":
 
     # 1. Setup parameters from the table
-    dimension = 3
-    SN = 4  # number of bees (population size)
+    dimension = 10
+    SN = 5  # number of bees (population size)
     search_space= [-100, 100]
 
     # continuous bounds derived from search_space
     Z_MIN = min(search_space)
     Z_MAX = max(search_space)
 
-    MCN=10 # maximum cycle number
+    MCN=190 # maximum cycle number
 
     best_value = float('inf')  # initialize best value to infinity
     best = None                # initialize best solution
@@ -223,9 +234,16 @@ if __name__ == "__main__":
 
     
 
-    result = abc_document_style(SN=4,population=bees, MCN=10, limit=3, seed=123)
+    result = abc_document_style(SN=SN,population=bees, MCN=MCN, limit=3, seed=123)
 
-    print("Best solution:", result["best_solution"], "cost:", result["best_cost"])
-    print("Final population:", result["population"])
-    print("Final costs:", result["costs"])
-    print("Final fitnesses:", result["fits"])
+    # print("Best solution:", result["best_solution"], "cost:", result["best_cost"])
+    # print("Final population:", result["population"])
+    # print("Final costs:", result["costs"])
+    # print("Final fitnesses:", result["fits"])
+    print("Run costs:", result["runcost"])
+
+figure, ax = plt.subplots()
+ax.plot(range(1, MCN + 1), result["runcost"], marker='o')
+ax.set_xlabel('Cycle')  
+ax.set_ylabel('Best Cost') 
+plt.show()
