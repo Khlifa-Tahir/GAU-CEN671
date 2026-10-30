@@ -30,3 +30,23 @@ print("\nRandom solution:", random_solution())
 
 rnsol=[random_solution() for _ in range(4)]
 print("Random solutions:", rnsol)
+
+
+population=[(0,3),(0,1),(1.5,1),(2,2),(2,1),(3,2)]
+
+def Dist(p1,p2):
+        return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+
+print("Distance between points:", [Dist(population[1],d)for d in population])
+
+
+total_distance=[]
+for i in range(len(population)):
+    
+    fi=sum([Dist(population[i],d)/len(population) for d in population])
+
+    fi=round(fi,3)
+    print("\n fi=",fi)
+    total_distance.append(fi)
+
+print(">>>",total_distance)
