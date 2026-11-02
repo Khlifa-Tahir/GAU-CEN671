@@ -4,6 +4,45 @@ import random
 import numpy as np
 
 
+
+
+
+seed = 12
+if seed is not None:
+    random.seed(seed)
+    np.random.seed(seed)
+
+
+for i in range(2):
+
+    print(random.random())      # always the same
+    print(np.random.rand())     # always the same
+
+    # print(random.random())      # always the same
+    # print(np.random.rand())     # always the same
+
+    # print(random.random())      # always the same
+    # print(np.random.rand())     # always the same
+
+exit()
+
+
+
+trial=[0]*5
+x=0
+
+print(trial)
+for i in range(5):
+    trial[i]+=1
+    x+=1
+    print("\ntrial=",trial[i])
+    print("\nx=",x)
+
+print(trial)
+print(x)
+exit()
+    
+
 points=[(1,2),(3,4),(5,6),(7,8)]
 k=2
 print(points[:k])

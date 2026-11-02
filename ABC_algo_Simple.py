@@ -1,20 +1,28 @@
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-from function_step import step_function
+from function1_step import step_function
+from function2_sphere import sphere_function
+from function3_sumsqure import sumsqure_function
+from function6_schwefel import Schwefel_function
+
+
 
 
 # Objective function
 def f(x):
-    return step_function([x])  # minimize this
+    return  step_function(x)  # minimize this
+    #return  sphere_function(x)  # minimize this 
+    #return  sumsqure_function(x)  # minimize this
+    #return Schwefel_function(x)  # minimize this
 
 #____________________________________________________
 
 
  # 1. Setup parameters from the table
-dimension = 3
+dimension = 20
 Ns = 100  # number of bees
-search_space0 = [-100, 100]
+search_space0 = [-500, 500]
 MCN=100
 
 #-------------------------------------------------------
@@ -28,11 +36,12 @@ bees = np.random.uniform(search_space0[0], search_space0[1], size=(Ns, dimension
 best_value = float('inf')  # initialize best value to infinity
 best = None  # initialize best solution
 stopNoImprv=[0]
+
 n0_improvement = 0  # counter for improvements
 
 
 for iteration in range(MCN):  # few simple rounds
-    print("\nIteration", iteration + 1)
+    #print("\nIteration", iteration + 1)
 
     # Employed bees phase: try small changes
     for i in range(bees.shape[0]):  # for each bee):
@@ -81,7 +90,7 @@ for iteration in range(MCN):  # few simple rounds
     bees = np.vstack([bees, ppp])  # add a new random bee
 
     #print("Bees:", bees)
-    print("Best so far:", "with f(x) =", best_value)
+    #print("Best so far:", "with f(x) =", best_value)
 
     checkt = best_value
 
@@ -94,7 +103,7 @@ for iteration in range(MCN):  # few simple rounds
         n0_improvement =0 
 
     
-    if n0_improvement > 30:  # if no improvement for 10 iterations
+    if n0_improvement > 30:  # if no improvement for 30 iterations
         break 
         #print("No improvement for", n0_improvement, "iterations.")
 

@@ -1,43 +1,38 @@
 from pprint import pp
+import argparse
 import random
 import matplotlib.pyplot as plt
 import numpy as np
-from function_step import step_function
+from function1_step import step_function
+from function2_sphere import sphere_function
+from function3_sumsqure import sumsqure_function
+from function4_rosenbrock import rosenbrock_function
+from function5_rastrigin import rastrigin_function
+from function6_schwefel import Schwefel_function
+from function7_griewank import griewank_function
+from function8_ackley import ackley_function
+
 
 
 # -------------------------
-# Problem functions   (from paper formulas)
-# -------------------------
+# Algorithm functions   (from paper formulas)
+# # -------------------------
 
 
-def objective(x):
-#     # cost to minimize (same toy problem)
-     return  step_function([x])  # minimize this
-
+def objective(x): 
+    
+    return  func_name(x)
 
 
 def fitness_from_cost(cost):
     # Eq.(4) style transform: fitness = 1 / (1 + cost)
-    return 1.0 / (1.0 + cost)
-
-
-# def clamp_to_search_space(value):
-#     # map continuous candidate to nearest discrete allowed value
-#     #print("value:", value)
-#     #exit()
-#     nearest = min(search_space, key=lambda s: abs(s - value))
-#     return nearest
-
+    #ranks = np.argsort(np.argsort(cost))  # 0 = best
+    #return 1/(1+ranks)
+    return 1/(1+cost)
 
 
 def produce_neighbor(population, i_index):
-    """
-    Produce candidate v using document formula:
-    v_j = z_ij + phi_j * (z_ij - z_kj)
-    Here we have 1D positions, so j is implicit.
-    - pick k != i randomly
-    - phi in [-1, 1]
-    """
+    
     # choose k different from i_index
     indices = list(range(len(population))) ### len(population) is SN (number of bees)
     #print("indices:", indices)
@@ -53,33 +48,29 @@ def produce_neighbor(population, i_index):
     # print("z_i_val:", z_i_val.shape)
     # print("z_k_val:", z_k_val.shape)
     # print("phi:", phi.shape)
-    # print("v:", v.shape)
-    
+    # print("v:", v.shape)    
     # exit()
     # clamp to continuous bounds then map to discrete search space
     #if v < Z_MIN: v = Z_MIN
     #if v > Z_MAX: v = Z_MAX
     return v
-    #return clamp_to_search_space(v)
-
-
 
 
 def scout_random_solution(dimension):
     # scout formula: z = Zmin + rand(0,1)*(Zmax - Zmin)
-    val = np.array([Z_MIN]*dimension) + np.random.uniform(0, 1, size=dimension) * np.array([Z_MAX - Z_MIN]*dimension)  # for 3D
-    # print("Scout random solution:", val)
-    # exit()
-    return val
-    #return clamp_to_search_space(val)
+    newsol = np.random.uniform(0, 1, size=dimension) * np.array([Z_MAX - Z_MIN]).reshape(1,-1)  # for 3D
+
+    #print("Scout random solution:", newsol.shape)
+    #exit()
+    return newsol
+#===================================================================================
+    
 
 
 
 
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<   ABC algorithm  >>>>>>>>>>>>>>>>>>> 
 
-# -------------------------
-# ABC algorithm (document style)
-# -------------------------
 def ABC_Optim_Algo(
     SN=None,        # number of food sources = number of employed bees
     population=None,  # initial population of food sources (candidate solutions)
@@ -87,134 +78,148 @@ def ABC_Optim_Algo(
     limit=None,     # abandonment limit
     seed=None
 ):
+    
     if seed is not None:
         random.seed(seed)
+        np.random.seed(seed)
+   
+   
 
-
-
-
-
-
-    # 2. Generate initial population z_i, i = 1..SN
-    #population = [scout_random_solution() for _ in range(SN)]
-
-    #print('Initial population:', (population.shape))
-    
-
-    #for i in range(len(population)):
-        #costs=sum([objective(population[i],d)/len(population) for d in population])
-    costs = [objective(z) for z in population]
-    
-    #print(costs)
-    #exit()
-    
-    fits = [fitness_from_cost(c) for c in costs]
-
-    
-
-    trial = [0] * SN  # abandonment counters [0, 0, 0, 0]
-    # print("Initial costs:", costs)
+    costs=objective(population)  ## for initial solution
+     #print('costs=',costs)
+        
+    # fits = [fitness_from_cost(c) for c in costs]   
+    fits = fitness_from_cost(costs)
+    trial = [0] * SN  # cycle counter for abandonment length on SN, initialized to 0
+   
     # print("Initial fitnesses:", fits)
-    # print("Initial trial counters:", trial)
+    # print("Initial trial counters:", (trial))
+    # exit()    
 
-    # exit()
-    
+    # memorize best solution so far
 
-    
-
-    # memorize best
-    best_idx = min(range(SN), key=lambda i: costs[i])
-    
+    best_idx = min(range(SN), key=lambda i: costs[i]) 
     best_solution = population[best_idx]
     best_cost = costs[best_idx]
 
-    #print(f"Initial best solution: {best_solution}, cost: {best_cost}")
-
-    
-
+    #print(f"len of Initial best solution: {len(best_solution)}, cost: {best_cost}")
     cycle = 1
     runcost = [0] * (MCN )  # store best cost at each cycle
+
     while cycle <= MCN:
 
-
-
+        #print("cycle=",cycle)
         #---------------------------------------------------------
-        # 6. Employed bees phase
+
+
+        # 6. Employed bee phase: Number SN                
         for i in range(SN):
-            candidate = produce_neighbor(population, i)
-            cand_cost = objective(candidate)
-            # greedy selection
-            if cand_cost <= costs[i]:
-                population[i] = candidate
-                costs[i] = cand_cost
-                fits[i] = fitness_from_cost(cand_cost)
-                trial[i] = 0
+            # print("-----------------------")
+            # print('i=',i)
+            candidate = produce_neighbor(population, i).reshape(1,dimension)
+            # print("cand_ employ",candidate.shape)           
+            cand_cost = objective(candidate).item()  ## to extract to scalar
+            # print("cand_cost employ",(cand_cost))
+
+            current_best_idx = max(range(SN), key=lambda i: costs[i])
+
+            # greedy selection ==============================
+            if cand_cost <= costs[current_best_idx]:
+                #print("true: candi_cost",cand_cost)
+                population[current_best_idx] = candidate
+                costs[current_best_idx] = cand_cost
+                fits[current_best_idx] = fitness_from_cost(cand_cost)
+                trial[i] = 0    #  abandon to replace nectar finesh
             else:
-                trial[i] += 1
+                #print("false: candi_cost",cand_cost)
+                trial[i] += 1   # stay more cycle
+            
+            #print("costs after",costs)
+        #exit()
+
+
 
         # 7. Calculate probability values p_i for solutions z_i by fitness
         total_fit = sum(fits)
         if total_fit == 0:
-            probs = [1.0 / SN] * SN
+            probs = [1.0 / SN] * SN  ## always == 1          
         else:
             probs = [f / total_fit for f in fits]
 
 
         #---------------------------------------------------------
-        # 8. Onlooker bees phase
-        # number of onlookers commonly equals SN
-        for _ in range(SN):
-            # roulette wheel selection based on probs
-            r = random.random()
-            accum = 0.0
+        # 8. Onlooker bee phase:  Number SN 
+        
+        for j in range(SN): ## for each probs (float)
+
+            # print("+++++++++++++++++++++++++++++++")
+            # print("j=",j)
+
+            # selection based on probs
+            r = random.random()  ## level to follow a dancing activity
+            # to avoid stucking at local minima. Randomness allow for
+            # exploration. worse solution may lead to global optima eventuall
+            accum = 0.0 # the accumulated probability
             selected = 0
+            # print("random level",r)
+            # print("total porbs",np.float64(probs))
             for idx, p in enumerate(probs):
-                accum += p
+                accum += p                
+                # print("idx=",idx)
+                # print("porbs",p)
+                # print("accum=",accum)          
+
                 if r <= accum:
-                    selected = idx
+                    selected = idx  # accumulate untill find solu. idx
+                    # which makes condition true
                     break
 
-            candidate = produce_neighbor(population, selected)
-            cand_cost = objective(candidate)
+            candidate = produce_neighbor(population, selected).reshape(1,dimension)
+
+            # print("cand onlooker",candidate.shape)            
+            cand_cost = objective(candidate).item()
+            # print("cand_cost onlooker",cand_cost)
             
             if cand_cost <= costs[selected]:
                 population[selected] = candidate
                 costs[selected] = cand_cost
                 fits[selected] = fitness_from_cost(cand_cost)
-                trial[selected] = 0
+                trial[selected] = 0   # replace nectar finish (leave)
             else:
-                trial[selected] += 1
+                trial[selected] += 1  # stay still nectar (wait)
 
-
-
+        #exit()
+        # e.g. >> trial=[ 3,2,0,1,0] for SN=5
         #---------------------------------------------------------
-
-        # 9. Scout phase: replace abandoned solutions
+       
+        # 9. Scout bee phase: replace abandoned solutions
         for i in range(SN):
-            if trial[i] >= limit:
-
-                #print("population[i] before scout:", population[i])
+            # print("==================================")
+            # print("jj=",i)
+            if trial[i] >= limit:                
                 # this generates a new random solution for the abandoned food source
-                #  len(population[i]) is the dimension of the solution
-                population[i] = scout_random_solution(len(population[i])) 
-                #print("population[i] after scout:", population[i])
-                #exit()
-                costs[i] = objective(population[i])
+                # print("all population",population)
+                # print("scout popul[i] before:", population[i])
+                #population[i] = scout_random_solution(population.shape[1]) 
+                population[i] = scout_random_solution(dimension)
+                #population[i]=population[i].reshape(1,dimension) 
+                # print("all population",population)
+                # print("scout popul after:",population[i])
+                
+                costs[i] = objective(population[i]).item()                
                 fits[i] = fitness_from_cost(costs[i])
                 trial[i] = 0
+                
+
 
         # 10. Memorize best solution so far
         current_best_idx = min(range(SN), key=lambda i: costs[i])
         if costs[current_best_idx] < best_cost:
             best_cost = costs[current_best_idx]
             best_solution = population[current_best_idx]
-
-        # optional: print progress
-        #print(f"Cycle {cycle}: best = {best_solution}, cost = {best_cost}, population = {population}")
-        
         
         runcost[cycle-1] = best_cost
-        cycle += 1
+        cycle += 1       
         
 
     return {
@@ -225,49 +230,112 @@ def ABC_Optim_Algo(
         "fits": fits,
         "runcost": runcost
     }
+#--------------------------------------------------------------------------------------
+
+
+
+
+
 
 # -------------------------
-# Run the modified ABC
+# Run  ----------------------  Artifitial Bee Colony  ----------------------------
 # -------------------------
+
+
 if __name__ == "__main__":
 
+
+
+    parser= argparse.ArgumentParser(description=" Run ABC Algorithm")
+    #parser2= argparse.ArgumentParser(description=" Dimension Number")
+
+
+    parser.add_argument(
+        "--function", type=str, default='Step',
+        choices=["Step","Sphere","SumSquare","Rosenbrock","Rastrigin","Schwefel","Griewank","Ackley"],
+        help="Name of used test function" )
+
+    parser.add_argument(
+        "--Dimension", type=int, default=3,
+        # choices=["1","2","3"],
+        help="Dimension Number")
+
+    parser.add_argument(
+            "--SN", type=int, default=3,
+            #choices=["20","30","3"],
+            help="Solution Number")
+
+    parser.add_argument(
+                "--MCN",  type=int, default=10,
+                #choices=["20000","200","300"],
+                help="Max Cycle Number")
+
+
+    parser.add_argument(
+                    "--Range", type=float, default=10.0,
+                    #choices=["10","5.12","30","32","500","600"],
+                    help="Range")
+
+    args=parser.parse_args()
+
+    
+    Function_Map={"Step":step_function,
+                  "Sphere":sphere_function,
+                  "SumSquare":sumsqure_function,
+                 "Rosenbrock":rosenbrock_function,
+                 "Rastrigin":rastrigin_function,
+                 "Schwefel":Schwefel_function,
+                 "Griewank":griewank_function,
+                 "Ackley":ackley_function}
+    func_name=Function_Map[args.function]
+    
+
+
     # 1. Setup parameters from the table
-    dimension = 30
-    SN = 100                         # number of bees (population size)
-    search_space= [-100, 100]      # continuous search space bounds
+
+    MCN= args.MCN         # maximum cycle number    
+    dimension = args.Dimension
+    SN = args.SN          # number of bees (population size)
+    search_space= [-args.Range , args.Range]      # continuous search space bounds
+
+    #exit()
+
+    limit = SN*300               # to simulate waiting time on one solu       
     Z_MIN = min(search_space)      # continuous bounds derived from search_space
     Z_MAX = max(search_space)
 
-    MCN=80                        # maximum cycle number
-
-    best_value = float('inf')  # initialize best value to infinity
-    best = None                # initialize best solution
-    stopNoImprv=[0]            # for tracking best values over iterations
-    n0_improvement = 0         # counter for improvements
+    
 
     #-------------------------------------------------------
 
-    # 2. Generate a random input vector within the range [-100, 100]
-        # (This simulates a candidate solution in an optimization algorithm)
-    bees = np.random.uniform(search_space[0], search_space[1], size=(SN, dimension))# size of the bees array (Ns, dimension)
-
+    # 2. Generate  initial population z_i, i = 1..SN...random input vector within the range [-100, 100]
+    # (This simulates a candidate solution in an optimization algorithm) size of the bees array (Ns, dimension)
+   
+    bees = np.random.uniform(search_space[0], search_space[1], size=(SN, dimension))
     
 
-    result = ABC_Optim_Algo(SN=SN,population=bees, MCN=MCN, limit=3, seed=123)
+    result = ABC_Optim_Algo(SN=SN,population=bees, MCN=MCN, limit=limit, seed=None)
 
-    # print("Best solution:", result["best_solution"], "cost:", result["best_cost"])
-    # print("Final population:", result["population"])
-    # print("Final costs:", result["costs"])
-    # print("Final fitnesses:", result["fits"])
+    #print("Best solution:", result["best_solution"], "cost:", result["best_cost"])
+    #print("Final population:", result["population"])
+    #print("Final costs:", result["costs"])
+    print("Final fitnesses:", result["fits"])
 
-    xx=[float(x) for x in result["runcost"]]
-    #print("Run costs:", xx)
+    # xx=[float(x) for x in result["runcost"]]
+    xx=result["runcost"][-1]
+    
+print("Final costs:", xx)
+
 
 figure, ax = plt.subplots()
 ax.plot(range(1, MCN + 1), result["runcost"], marker='o')
+ax.plot(MCN,xx, marker='o',label=f"Minimum= {xx:.2f}")
+
 ax.set_xlabel('Cycle')  
 ax.set_ylabel('Best Cost') 
-graph_title = f'ABC Algorithm: Step Test Function. Best Cost over {MCN} Cycles. '
-ax.set_title(graph_title)
+graph_title = f'{args.function}  function performance.'
+ax.set_title(graph_title,fontweight='bold')
+ax.text(0.95,0.95,f'MaxCycle={MCN}\nDimension={dimension} \nPopulation={SN} \n|Range|={search_space[1]}',transform=ax.transAxes,verticalalignment='top',horizontalalignment='right',bbox=dict(facecolor='magenta',edgecolor='black'))
 ax.grid(True)
+ax.legend(loc='lower right',bbox_to_anchor=(1,0.15))
 plt.show()
